@@ -16,7 +16,6 @@ import java.util.List;
 
 public class DBHelperWithLoader extends SQLiteOpenHelper {
     private static String DB_NAME = "songs.db";
-    // (должно совпадать с именем файла в /assets
     private static String DB_PATH = "";
     private static final int DB_VERSION = 1;
 

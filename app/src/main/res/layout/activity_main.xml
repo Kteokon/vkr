@@ -1,15 +1,84 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity"
-    android:orientation="vertical">
+    android:background="@color/backgroundColor"
+    android:orientation="vertical"
+    tools:context=".MainActivity">
 
-    <ListView
+    <RelativeLayout
+        android:id="@+id/menuButtons"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/menuColor"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.0">
+
+        <Button
+            android:id="@+id/returnButton"
+            android:layout_width="50sp"
+            android:layout_height="50sp"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="25dp" />
+
+        <Button
+            android:id="@+id/updateButton"
+            android:layout_width="50sp"
+            android:layout_height="50sp"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="25dp"
+            android:layout_toEndOf="@+id/returnButton" />
+
+        <Button
+            android:id="@+id/notesButton"
+            android:layout_width="50sp"
+            android:layout_height="50sp"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="25dp"
+            android:layout_toEndOf="@+id/updateButton" />
+
+    </RelativeLayout>
+
+    <Button
+        android:id="@+id/addSong"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:text="Add song"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/menuButtons" />
+
+    <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/songList"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:dividerHeight="10sp"/>
-</LinearLayout>
+        android:layout_marginTop="10dp"
+        android:dividerHeight="10sp"
+        app:layout_constraintBottom_toTopOf="@+id/nowPlaying"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/addSong"
+        app:layout_constraintVertical_bias="0.0" />
+
+    <RelativeLayout
+        android:id="@+id/nowPlaying"
+        android:layout_width="match_parent"
+        android:layout_height="50sp"
+        android:background="@color/menuColor"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="1.0">
+
+    </RelativeLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
