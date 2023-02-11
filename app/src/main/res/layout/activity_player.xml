@@ -21,27 +21,27 @@
         app:layout_constraintVertical_bias="0.0">
 
         <Button
-            android:id="@+id/returnButton"
+            android:id="@+id/dictionaryButton"
             android:layout_width="50sp"
             android:layout_height="50sp"
             android:layout_centerVertical="true"
             android:layout_marginStart="25dp" />
 
         <Button
-            android:id="@+id/updateButton"
+            android:id="@+id/taskButton"
             android:layout_width="50sp"
             android:layout_height="50sp"
             android:layout_centerVertical="true"
             android:layout_marginStart="25dp"
-            android:layout_toEndOf="@+id/returnButton" />
+            android:layout_toEndOf="@+id/dictionaryButton" />
 
         <Button
-            android:id="@+id/notesButton"
+            android:id="@+id/addSongButton"
             android:layout_width="50sp"
             android:layout_height="50sp"
             android:layout_centerVertical="true"
             android:layout_marginStart="25dp"
-            android:layout_toEndOf="@+id/updateButton" />
+            android:layout_toEndOf="@+id/taskButton" />
 
     </RelativeLayout>
 

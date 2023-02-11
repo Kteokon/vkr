@@ -21,51 +21,42 @@
         app:layout_constraintVertical_bias="0.0">
 
         <Button
-            android:id="@+id/returnButton"
+            android:id="@+id/dictionaryButton"
             android:layout_width="50sp"
             android:layout_height="50sp"
             android:layout_centerVertical="true"
             android:layout_marginStart="25dp" />
 
         <Button
-            android:id="@+id/updateButton"
+            android:id="@+id/taskButton"
             android:layout_width="50sp"
             android:layout_height="50sp"
             android:layout_centerVertical="true"
             android:layout_marginStart="25dp"
-            android:layout_toEndOf="@+id/returnButton" />
+            android:layout_toEndOf="@+id/dictionaryButton" />
 
         <Button
-            android:id="@+id/notesButton"
+            android:id="@+id/addSongButton"
             android:layout_width="50sp"
             android:layout_height="50sp"
             android:layout_centerVertical="true"
             android:layout_marginStart="25dp"
-            android:layout_toEndOf="@+id/updateButton" />
+            android:layout_toEndOf="@+id/taskButton" />
 
     </RelativeLayout>
-
-    <Button
-        android:id="@+id/addSong"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:text="Add song"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/menuButtons" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/songList"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
+        android:layout_marginBottom="10dp"
         android:dividerHeight="10sp"
         app:layout_constraintBottom_toTopOf="@+id/nowPlaying"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/addSong"
+        app:layout_constraintTop_toBottomOf="@+id/menuButtons"
         app:layout_constraintVertical_bias="0.0" />
 
     <RelativeLayout

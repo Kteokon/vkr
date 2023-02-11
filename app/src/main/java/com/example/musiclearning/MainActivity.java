@@ -9,9 +9,14 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.media.AudioManager;
+import android.media.MediaMetadata;
+import android.media.MediaMetadataRetriever;
+import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -22,9 +27,11 @@ import android.widget.Button;
 import android.widget.ListView;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.List;
+import java.util.Set;
 
 public class MainActivity extends AppCompatActivity implements ItemClickListener {
     DBHelperWithLoader DBHelper;
@@ -33,32 +40,22 @@ public class MainActivity extends AppCompatActivity implements ItemClickListener
 
     private SongViewModel songViewModel;
     private RecyclerView songList;
-    Button buttonAddSong;
+    Button addSongButton;
 
     private static final int PERMISSION_STORAGE = 101;
-    private static final int ADD_PRODUCT_REQUEST = 1;
+    private static final int ADD_SONG_REQUEST = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        /*try {
-            Resources res = getResources();
-            InputStream inStream = res.openRawResource(R.raw._1);
-
-            byte[] buff = new byte[inStream.available()];
-            inStream.read(buff);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }*/
         DBHelper = new DBHelperWithLoader(this);
         songsDB = SongsDB.create(this, false);
 
         songList = findViewById(R.id.songList);
         songList.setLayoutManager(new LinearLayoutManager(this));
-        buttonAddSong = findViewById(R.id.addSong);
+        addSongButton = findViewById(R.id.addSongButton);
 
         SongListAdapter adapter = new SongListAdapter(this, this);
         songList.setAdapter(adapter);
@@ -73,7 +70,7 @@ public class MainActivity extends AppCompatActivity implements ItemClickListener
             }
         });
 
-        buttonAddSong.setOnClickListener(new View.OnClickListener() {
+        addSongButton.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
                 if (PermissionUtils.hasPermissions(MainActivity.this)) {
                     addSongFile();
@@ -93,15 +90,13 @@ public class MainActivity extends AppCompatActivity implements ItemClickListener
     }
 
     private void addSongFile() {
-        int PICK_FILE = 2;
-
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("*/*");
         String[] mimetypes = {"audio/mpeg", "audio/x-wav"};
         intent.putExtra(Intent.EXTRA_MIME_TYPES, mimetypes);
 
-        startActivityForResult(intent, PICK_FILE);
+        startActivityForResult(intent, ADD_SONG_REQUEST);
     }
 
 
@@ -136,60 +131,28 @@ public class MainActivity extends AppCompatActivity implements ItemClickListener
             }
         }
         super.onActivityResult(requestCode, resultCode, resultData);
-        if (requestCode == 2 && resultCode == Activity.RESULT_OK) {
+        if (requestCode == ADD_SONG_REQUEST && resultCode == Activity.RESULT_OK) {
             Uri uri = null;
 
             if(resultData != null) {
                 uri = resultData.getData();
-                Song song = new Song("artist", "song", "", "", "", uri.toString());
-                try {
-                    InputStream in = getContentResolver().openInputStream(uri);
-
-                    BufferedReader r = new BufferedReader(new InputStreamReader(in));
-                    StringBuilder total = new StringBuilder();
-                    for (String line; (line = r.readLine()) != null; ) {
-                        total.append(line).append('\n');
-                    }
-                    String content = total.toString();
-                    Log.d("mytag", content);
-                }catch (Exception e) {
-
+                String properPath = getProperPath(uri.getPath());
+                MediaMetadataRetriever retriever = new MediaMetadataRetriever();
+                Log.d("mytag", properPath);
+                retriever.setDataSource(properPath);
+                String songTitle = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
+                String songArtist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST);
+                if (songTitle == null) {
+                    songTitle = "Без названия";
                 }
-
-//                try {
-//                    File f = new File(text);
-//                    Log.d("mytag", f.getName());
-//                    FileInputStream is = new FileInputStream(f); // Fails on this line
-//                    int size = is.available();
-//                    byte[] buffer = new byte[size];
-//                    is.read(buffer);
-//                    is.close();
-//                    text = new String(buffer);
-//                    Log.d("mytag", text);
-//                } catch (IOException e) {
-//                    // TODO Auto-generated catch block
-//                    e.printStackTrace();
-//                }
+                if (songArtist == null) {
+                    songArtist = "Исполнитель неизвестен";
+                }
+                Log.d("mytag", "song title: " + songTitle);
+                Log.d("mytag", "song artist: " + songArtist);
+                Song song = new Song(songArtist, songTitle, "", "", "", properPath);
+                songViewModel.insert(song);
             }
-
-//            MediaPlayer music = new MediaPlayer();
-//            if (resultData != null) {
-//                uri = resultData.getData();
-//                try {
-//                    if (music.isPlaying()){
-//                        music.stop();
-//                        music = new MediaPlayer();
-//                    }
-//                    music.setAudioStreamType(AudioManager.STREAM_MUSIC);
-//                    music.setDataSource(this, uri);
-//                    music.prepare();
-//                    music.start();
-//                } catch (IOException e) {
-//                    Log.d("mytag", "error: " + e.getLocalizedMessage());
-//                    e.printStackTrace();
-//                }
-//                Log.d("mytag", uri.getPath());
-//            }
         }
     }
 
@@ -203,5 +166,24 @@ public class MainActivity extends AppCompatActivity implements ItemClickListener
             }
         }
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    }
+
+    private String getProperPath(String path) {
+        String res = "storage/";
+        int colon = path.indexOf(":");
+        String beforeColon = path.substring(0, colon);
+        String afterColon = path.substring(colon + 1);
+        int slash = beforeColon.indexOf("/");
+        String afterFirstSlash = beforeColon.substring(slash + 1);
+        int slash2 = afterFirstSlash.indexOf("/");
+        String storage = afterFirstSlash.substring(slash2 + 1);
+        if (storage.equals("primary")) {
+            res += "emulated/0/";
+        }
+        else {
+            res += storage + "/";
+        }
+        res += afterColon;
+        return res;
     }
 }
