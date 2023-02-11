@@ -30,6 +30,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.Serializable;
 import java.util.List;
 import java.util.Set;
 
@@ -43,7 +44,7 @@ public class MainActivity extends AppCompatActivity implements ItemClickListener
     Button addSongButton;
 
     private static final int PERMISSION_STORAGE = 101;
-    private static final int ADD_SONG_REQUEST = 1;
+    public static final int ADD_SONG_REQUEST = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -85,7 +86,8 @@ public class MainActivity extends AppCompatActivity implements ItemClickListener
     @Override
     public void onItemClick(Song item) {
         Intent intent = new Intent(this, PlayerActivity.class);
-        intent.putExtra("song", (Parcelable) item);
+        intent.putExtra("index", songs.indexOf(item));
+        intent.putExtra("songs", (Serializable) songs);
         startActivity(intent);
     }
 
@@ -98,25 +100,6 @@ public class MainActivity extends AppCompatActivity implements ItemClickListener
 
         startActivityForResult(intent, ADD_SONG_REQUEST);
     }
-
-
-//    public void onAddSongClick(View v) {
-//        new Thread() {
-//            @Override
-//            public void run() {
-//                SongList songList = songsDB.songList();
-//                int id = songList.selectAll().size() + 1;
-//                // TODO: Вызвать функцию открытия и выбора файлов
-//                //if (PermissionUtils.hasPermissions(MainActivity.this)) return;
-//                //PermissionUtils.requestPermissions(MainActivity.this, PERMISSION_STORAGE);
-//
-//                Intent intent = new Intent(getApplicationContext(), PlayerActivity.class);
-//                intent.putExtra("button", "addSong");
-//                startActivity(intent);
-//
-//            }
-//        }.start();
-//    }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent resultData) {

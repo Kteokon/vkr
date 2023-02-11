@@ -1,7 +1,9 @@
 package com.example.musiclearning;
 
 import android.content.Intent;
+import android.media.AudioManager;
 import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -10,27 +12,32 @@ import android.widget.Button;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 
 public class PlayerActivity extends AppCompatActivity {
+    public static final int UPDATE_SONG_REQUEST = 2;
+
     FloatingActionButton playButton, shuffleButton, loopButton;
     SeekBar seekBar;
     TextView timePassedTV, timeOverTV, songTV, artistTV;
+    Button homeButton, updateButton, notesButton;
 
     MediaPlayer mediaPlayer;
+    List<Song> songs;
     Song song;
     List<Integer> music;
     boolean wasPlaying;
     int nowPlaying, isLooping, isRandom; // isLooping может иметь 3 состояние (0 - нет повтора, 1 - повтор одной песни, 2 - повтор всего плейлиста)
-
-    private static final int PERMISSION_STORAGE = 101;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,7 +45,11 @@ public class PlayerActivity extends AppCompatActivity {
         setContentView(R.layout.activity_player);
 
         Intent intent = getIntent();
-        song = intent.getParcelableExtra("song");
+        songs = (List<Song>) intent.getSerializableExtra("songs");
+        nowPlaying = intent.getIntExtra("index", 0);
+        song = songs.get(nowPlaying);
+
+        Log.d("mytag", Integer.toString(nowPlaying) + " " + song.getSong());
 
         playButton = findViewById(R.id.playButton);
         shuffleButton = findViewById(R.id.shuffleButton);
@@ -48,20 +59,20 @@ public class PlayerActivity extends AppCompatActivity {
         timeOverTV = findViewById(R.id.timeOver);
         songTV = findViewById(R.id.songName);
         artistTV = findViewById(R.id.songArtist);
+        homeButton = findViewById(R.id.homeButton);
+        updateButton = findViewById(R.id.updateButton);
+        notesButton = findViewById(R.id.notesButton);
 
         isLooping = 0;
         isRandom = 0;
         wasPlaying = false;
         music = getRawIds();
 
-        if (song.getSource().equals("base")) {
-            nowPlaying = song.getId() - 1;
+        try {
+            checkButtons();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-        else {
-            nowPlaying = song.getId();
-        }
-
-        checkButtons();
 
         Handler handler = new Handler();
         PlayerActivity.this.runOnUiThread(new Runnable() {
@@ -99,7 +110,7 @@ public class PlayerActivity extends AppCompatActivity {
             public void onCompletion(MediaPlayer mediaPlayer) {
                 Log.d("mytag", "Song is finished");
                 mediaPlayer.pause();
-                playButton.setBackgroundResource(R.drawable.play_button);
+                playButton.setImageDrawable(ContextCompat.getDrawable(getApplication(), R.drawable.play_button));
             }
         });
 
@@ -140,10 +151,14 @@ public class PlayerActivity extends AppCompatActivity {
         shuffleButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                int r = (int)(Math.random() * music.size());
+                int r = (int)(Math.random() * songs.size());
                 nowPlaying = r;
                 Log.d("mytag", "Random song " + Integer.toString(nowPlaying));
-                checkButtons();
+                try {
+                    checkButtons();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         });
 
@@ -151,12 +166,12 @@ public class PlayerActivity extends AppCompatActivity {
 //        mediaPlayer = MediaPlayer.create(this, resId);
     }
 
-    public void skipSong(View v) {
+    public void skipSong(View v) throws IOException {
         switch (v.getId()) {
             case R.id.skipLeftButton: {
                 Log.d("mytag", "Previous song");
                 if (nowPlaying == 0) {
-                    nowPlaying = music.size();
+                    nowPlaying = songs.size();
                 }
                 nowPlaying--;
                 break;
@@ -164,13 +179,65 @@ public class PlayerActivity extends AppCompatActivity {
             case R.id.skipRightButton: {
                 Log.d("mytag", "Next song");
                 nowPlaying++;
-                if (nowPlaying == music.size()) {
+                if (nowPlaying == songs.size()) {
                     nowPlaying = 0;
                 }
                 break;
             }
         }
         checkButtons();
+    }
+
+    public void updateSong(View v) {
+        Intent intent = new Intent(this, UpdateActivity.class);
+
+        intent.putExtra(UpdateActivity.SONG_ID, song.getId());
+        intent.putExtra(UpdateActivity.SONG_NAME, song.getSong());
+        intent.putExtra(UpdateActivity.SONG_ARTIST, song.getArtist());
+        intent.putExtra(UpdateActivity.SONG_LYRICS, song.getLyrics());
+        intent.putExtra(UpdateActivity.SONG_TRANSLATION, song.getTranslation());
+        intent.putExtra(UpdateActivity.SONG_NOTES, song.getNotes());
+        intent.putExtra(UpdateActivity.SONG_SOURCE, song.getSource());
+
+        startActivityForResult(intent, UPDATE_SONG_REQUEST);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == UPDATE_SONG_REQUEST && resultCode == RESULT_OK) {
+            int id = data.getIntExtra(UpdateActivity.SONG_ID, -1);
+
+            if (id == -1) {
+                Log.d("mytag", "No updates, id = -1");
+                return;
+            }
+
+            String songName = data.getStringExtra(UpdateActivity.SONG_NAME);
+            String songArtist = data.getStringExtra(UpdateActivity.SONG_ARTIST);
+            String songLyrics = data.getStringExtra(UpdateActivity.SONG_LYRICS);
+            String songTranslation = data.getStringExtra(UpdateActivity.SONG_TRANSLATION);
+            String songNotes = data.getStringExtra(UpdateActivity.SONG_NOTES);
+            String songSource = data.getStringExtra(UpdateActivity.SONG_SOURCE);
+
+            Log.d("mytag", "Song " + id + " " + songName + " " + songArtist);
+
+            Song song = new Song(songArtist, songName, songLyrics, songTranslation, songNotes, songSource);
+            song.setId(id);
+            String button = data.getStringExtra("button");
+            SongViewModel songViewModel = new ViewModelProvider(this).get(SongViewModel.class);
+            if (button.equals("delete")) {
+                songViewModel.delete(song);
+
+                Log.d("mytag", "Deleted");
+            }
+            else{
+                songViewModel.update(song);
+
+                Log.d("mytag", "Updated");
+            }
+        }
     }
 
     private List<Integer> getRawIds() {
@@ -183,13 +250,22 @@ public class PlayerActivity extends AppCompatActivity {
         return rawIds;
     }
 
-    private void checkButtons() {
+    private void checkButtons() throws IOException {
         if (mediaPlayer != null) {
             mediaPlayer.stop();
             mediaPlayer.reset();
             mediaPlayer.release();
         }
-        mediaPlayer = MediaPlayer.create(this, music.get(nowPlaying));
+        song = songs.get(nowPlaying);
+        if (song.getSource().equals("base")) {
+            mediaPlayer = MediaPlayer.create(this, music.get(song.getId() - 1));
+        }
+        else {
+            mediaPlayer = new MediaPlayer();
+            mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+            mediaPlayer.setDataSource(this, Uri.parse(song.getSource()));
+            mediaPlayer.prepare();
+        }
 
         songTV.setText(song.getSong());
         artistTV.setText(song.getArtist());
