@@ -25,7 +25,14 @@
             android:layout_width="50sp"
             android:layout_height="50sp"
             android:layout_centerVertical="true"
-            android:layout_marginStart="25dp" />
+            android:layout_marginStart="25dp"
+            android:background="#00FFFFFF"
+            android:onClick="addSongLyrics"
+            app:icon="@drawable/add_song"
+            app:iconGravity="textStart"
+            app:iconPadding="0sp"
+            app:iconSize="50sp"
+            app:iconTint="#BA85FB" />
 
         <Button
             android:id="@+id/deleteButton"
@@ -34,7 +41,13 @@
             android:layout_centerVertical="true"
             android:layout_marginStart="25dp"
             android:layout_toEndOf="@+id/addLyricsButton"
-            android:onClick="saveChanges" />
+            android:background="#00FFFFFF"
+            android:onClick="saveChanges"
+            app:icon="@drawable/delete_song"
+            app:iconGravity="textStart"
+            app:iconPadding="0sp"
+            app:iconSize="50sp"
+            app:iconTint="#BA85FB" />
 
         <Button
             android:id="@+id/saveButton"
@@ -43,7 +56,13 @@
             android:layout_centerVertical="true"
             android:layout_marginStart="25dp"
             android:layout_toEndOf="@+id/deleteButton"
-            android:onClick="saveChanges" />
+            android:background="#00FFFFFF"
+            android:onClick="saveChanges"
+            app:icon="@drawable/save_changes"
+            app:iconGravity="textStart"
+            app:iconPadding="0sp"
+            app:iconSize="50sp"
+            app:iconTint="#BA85FB" />
 
         <Button
             android:id="@+id/cancelButton"
@@ -52,7 +71,13 @@
             android:layout_centerVertical="true"
             android:layout_marginStart="25dp"
             android:layout_toEndOf="@+id/saveButton"
-            android:onClick="cancelChanges"/>
+            android:background="#00FFFFFF"
+            android:onClick="cancelChanges"
+            app:icon="@drawable/cancel_changes"
+            app:iconGravity="textStart"
+            app:iconPadding="0sp"
+            app:iconSize="50sp"
+            app:iconTint="#BA85FB" />
 
     </RelativeLayout>
 

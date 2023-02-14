@@ -34,7 +34,13 @@
             android:layout_centerVertical="true"
             android:layout_marginStart="25dp"
             android:layout_toEndOf="@+id/homeButton"
-            android:onClick="updateSong" />
+            android:background="#00FFFFFF"
+            android:onClick="updateSong"
+            app:icon="@drawable/update_song"
+            app:iconGravity="textStart"
+            app:iconPadding="0sp"
+            app:iconSize="50sp"
+            app:iconTint="#BA85FB" />
 
         <Button
             android:id="@+id/notesButton"

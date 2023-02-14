@@ -41,7 +41,13 @@
             android:layout_height="50sp"
             android:layout_centerVertical="true"
             android:layout_marginStart="25dp"
-            android:layout_toEndOf="@+id/taskButton" />
+            android:layout_toEndOf="@+id/taskButton"
+            android:background="#00AED189"
+            app:icon="@drawable/add_song"
+            app:iconGravity="textStart"
+            app:iconPadding="0sp"
+            app:iconSize="50sp"
+            app:iconTint="#BA85FB" />
 
     </RelativeLayout>
 

@@ -231,8 +231,14 @@ public class PlayerActivity extends AppCompatActivity {
                 songViewModel.delete(song);
 
                 Log.d("mytag", "Deleted");
+
+                Intent intent = new Intent(this, MainActivity.class);
+                startActivity(intent);
             }
             else{
+                songTV.setText(songName);
+                artistTV.setText(songArtist);
+
                 songViewModel.update(song);
 
                 Log.d("mytag", "Updated");
@@ -258,9 +264,11 @@ public class PlayerActivity extends AppCompatActivity {
         }
         song = songs.get(nowPlaying);
         if (song.getSource().equals("base")) {
+            updateButton.setVisibility(View.GONE);
             mediaPlayer = MediaPlayer.create(this, music.get(song.getId() - 1));
         }
         else {
+            updateButton.setVisibility(View.VISIBLE);
             mediaPlayer = new MediaPlayer();
             mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
             mediaPlayer.setDataSource(this, Uri.parse(song.getSource()));
