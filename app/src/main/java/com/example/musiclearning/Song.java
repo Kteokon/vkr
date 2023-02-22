@@ -4,13 +4,19 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 import androidx.annotation.NonNull;
+import androidx.room.ColumnInfo;
 import androidx.room.Entity;
-import androidx.room.Ignore;
+import androidx.room.ForeignKey;
 import androidx.room.PrimaryKey;
 
 import java.io.Serializable;
 
-@Entity(tableName = "song")
+@Entity(tableName = "song",
+        foreignKeys = {@ForeignKey(entity = Note.class,
+                parentColumns = "_id",
+                childColumns = "note_id",
+                onDelete = ForeignKey.CASCADE)
+        })
 public class Song implements Parcelable, Serializable {
     @PrimaryKey(autoGenerate = true)
     @NonNull
@@ -19,9 +25,11 @@ public class Song implements Parcelable, Serializable {
     @NonNull
     private String artist, song, source;
 
-    private String lyrics, translation, notes;
+    private String lyrics, translation;
+    @ColumnInfo(name = "note_id")
+    private Integer notes;
 
-    public Song(@NonNull String artist, @NonNull String song, @NonNull String lyrics, @NonNull String translation, @NonNull String notes, @NonNull String source) {
+    public Song(@NonNull String artist, @NonNull String song, @NonNull String lyrics, @NonNull String translation, @NonNull Integer notes, @NonNull String source) {
         this.artist = artist;
         this.song = song;
         this.lyrics = lyrics;
@@ -36,7 +44,14 @@ public class Song implements Parcelable, Serializable {
         this.song = in.readString();
         this.lyrics = in.readString();
         this.translation = in.readString();
-        this.notes = in.readString();
+        int helpie = in.readInt();
+        if (helpie == 0) {
+            this.notes = null;
+        }
+        else {
+            this.notes = Integer.valueOf(helpie);
+        }
+
         this.source = in.readString();
     }
 
@@ -87,10 +102,10 @@ public class Song implements Parcelable, Serializable {
         this.translation = translation;
     }
 
-    public String getNotes() {
+    public Integer getNotes() {
         return this.notes;
     }
-    public void setNotes(String notes) {
+    public void setNotes(Integer notes) {
         this.notes = notes;
     }
 
@@ -113,7 +128,12 @@ public class Song implements Parcelable, Serializable {
         dest.writeString(this.song);
         dest.writeString(this.lyrics);
         dest.writeString(this.translation);
-        dest.writeString(this.notes);
+        if (this.notes == null) {
+            dest.writeInt(0);
+        }
+        else {
+            dest.writeInt(this.notes);
+        }
         dest.writeString(this.source);
     }
 }

@@ -48,7 +48,8 @@
             android:layout_height="50sp"
             android:layout_centerVertical="true"
             android:layout_marginStart="25dp"
-            android:layout_toEndOf="@+id/updateButton" />
+            android:layout_toEndOf="@+id/updateButton"
+            android:onClick="addUpdateNotes" />
 
     </RelativeLayout>
 

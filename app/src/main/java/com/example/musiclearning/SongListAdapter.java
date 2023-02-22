@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SongListAdapter extends RecyclerView.Adapter<SongListAdapter.CustomViewHolder>{
-    private List<Song> songs = new ArrayList<>();
+    private List<SongAndNote> songs = new ArrayList<>();
     LayoutInflater inflater;
     ItemClickListener listener;
 
@@ -35,16 +35,19 @@ public class SongListAdapter extends RecyclerView.Adapter<SongListAdapter.Custom
 
     @Override
     public void onBindViewHolder(@NonNull CustomViewHolder holder, int position) {
-        Song song = songs.get(position);
+        SongAndNote songWithNote = songs.get(position);
+        Song _song = songWithNote.song;
 
-        holder.idTV.setText(Integer.toString(song.getId()));
-        holder.songTV.setText(song.getSong());
-        holder.artistTV.setText(song.getArtist());
-        holder.sourceTV.setText(song.getSource());
+        Log.d("mytag", Integer.toString(_song.getId()));
+
+        holder.idTV.setText(Integer.toString(_song.getId()));
+        holder.songTV.setText(_song.getSong());
+        holder.artistTV.setText(_song.getArtist());
+        holder.sourceTV.setText(_song.getSource());
         holder.cl.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                listener.onItemClick(song);
+                listener.onItemClick(songWithNote);
             }
         });
     }
@@ -54,7 +57,7 @@ public class SongListAdapter extends RecyclerView.Adapter<SongListAdapter.Custom
         return songs.size();
     }
 
-    public void setSongs(List<Song> songs) {
+    public void setSongs(List<SongAndNote> songs) {
         this.songs = songs;
         notifyDataSetChanged(); // не использовать в RecycleView
     }

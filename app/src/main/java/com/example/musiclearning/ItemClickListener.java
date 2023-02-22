@@ -1,5 +1,6 @@
 package com.example.musiclearning;
 
 public interface ItemClickListener {
-    void onItemClick(Song item);
+    void onItemClick(SongAndNote item);
+    void onItemClick(Note item);
 }

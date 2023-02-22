@@ -4,44 +4,32 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.Observer;
-import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.media.AudioManager;
-import android.media.MediaMetadata;
 import android.media.MediaMetadataRetriever;
-import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Parcelable;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.ListView;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.Serializable;
 import java.util.List;
-import java.util.Set;
 
 public class MainActivity extends AppCompatActivity implements ItemClickListener {
     DBHelperWithLoader DBHelper;
-    SongsDB songsDB;
-    private List<Song> songs;
+    MyRoomDB myRoomDB;
+    private List<SongAndNote> songs;
 
     private SongViewModel songViewModel;
     private RecyclerView songList;
-    Button addSongButton;
+    Button addSongButton, allNotesButton;
 
     private static final int PERMISSION_STORAGE = 101;
     public static final int ADD_SONG_REQUEST = 1;
@@ -52,22 +40,22 @@ public class MainActivity extends AppCompatActivity implements ItemClickListener
         setContentView(R.layout.activity_main);
 
         DBHelper = new DBHelperWithLoader(this);
-        songsDB = SongsDB.create(this, false);
+        myRoomDB = MyRoomDB.create(this, false);
 
         songList = findViewById(R.id.songList);
         songList.setLayoutManager(new LinearLayoutManager(this));
         addSongButton = findViewById(R.id.addSongButton);
+        allNotesButton = findViewById(R.id.notesButton);
 
         SongListAdapter adapter = new SongListAdapter(this, this);
         songList.setAdapter(adapter);
 
         songViewModel = new ViewModelProvider(this).get(SongViewModel.class);
-        songViewModel.getSongs().observe(this, new Observer<List<Song>>() {
+        songViewModel.getSongsWithNote().observe(this, new Observer<List<SongAndNote>>() {
             @Override
-            public void onChanged(List<Song> _songs) {
-                songs = _songs;
+            public void onChanged(List<SongAndNote> _songAndNotes) {
+                songs = _songAndNotes;
                 adapter.setSongs(songs);
-                Log.d("mytag", "Records in adapter: " + adapter.getItemCount());
             }
         });
 
@@ -81,14 +69,28 @@ public class MainActivity extends AppCompatActivity implements ItemClickListener
                 }
             }
         });
+
+        allNotesButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(getApplicationContext(), NotesActivity.class);
+                startActivity(intent);
+            }
+        });
     }
 
     @Override
-    public void onItemClick(Song item) {
+    public void onItemClick(SongAndNote item) {
         Intent intent = new Intent(this, PlayerActivity.class);
         intent.putExtra("index", songs.indexOf(item));
-        intent.putExtra("songs", (Serializable) songs);
+        intent.putExtra("song", (Serializable) item.song);
+//        intent.putExtra("songs", (Serializable) songs);
         startActivity(intent);
+    }
+
+    @Override
+    public void onItemClick(Note item) {
+
     }
 
     private void addSongFile() {
@@ -133,7 +135,7 @@ public class MainActivity extends AppCompatActivity implements ItemClickListener
                 }
                 Log.d("mytag", "song title: " + songTitle);
                 Log.d("mytag", "song artist: " + songArtist);
-                Song song = new Song(songArtist, songTitle, "", "", "", properPath);
+                Song song = new Song(songArtist, songTitle, "", "", null, properPath);
                 songViewModel.insert(song);
             }
         }

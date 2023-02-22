@@ -36,12 +36,20 @@
             android:layout_toEndOf="@+id/dictionaryButton" />
 
         <Button
+            android:id="@+id/notesButton"
+            android:layout_width="50sp"
+            android:layout_height="50sp"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="25dp"
+            android:layout_toEndOf="@+id/taskButton" />
+
+        <Button
             android:id="@+id/addSongButton"
             android:layout_width="50sp"
             android:layout_height="50sp"
             android:layout_centerVertical="true"
             android:layout_marginStart="25dp"
-            android:layout_toEndOf="@+id/taskButton"
+            android:layout_toEndOf="@+id/notesButton"
             android:background="#00AED189"
             app:icon="@drawable/add_song"
             app:iconGravity="textStart"

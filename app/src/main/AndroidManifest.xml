@@ -23,6 +23,20 @@
         android:theme="@style/Theme.MusicLearning"
         tools:targetApi="31">
         <activity
+            android:name=".NotesActivity"
+            android:exported="false">
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="" />
+        </activity>
+        <activity
+            android:name=".NoteActivity"
+            android:exported="false">
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="" />
+        </activity>
+        <activity
             android:name=".UpdateActivity"
             android:exported="false">
             <meta-data

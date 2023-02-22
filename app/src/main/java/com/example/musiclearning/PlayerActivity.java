@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -15,17 +16,22 @@ import android.widget.TextView;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.lifecycle.ViewModelStoreOwner;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 public class PlayerActivity extends AppCompatActivity {
-    public static final int UPDATE_SONG_REQUEST = 2;
+    public static final int UPDATE_SONG_REQUEST = 1;
+    public static final int ADD_NOTE_REQUEST = 2;
 
     FloatingActionButton playButton, shuffleButton, loopButton;
     SeekBar seekBar;
@@ -33,8 +39,9 @@ public class PlayerActivity extends AppCompatActivity {
     Button homeButton, updateButton, notesButton;
 
     MediaPlayer mediaPlayer;
-    List<Song> songs;
+    List<SongAndNote> songs;
     Song song;
+//    SongViewModel songViewModel;
     List<Integer> music;
     boolean wasPlaying;
     int nowPlaying, isLooping, isRandom; // isLooping может иметь 3 состояние (0 - нет повтора, 1 - повтор одной песни, 2 - повтор всего плейлиста)
@@ -45,11 +52,24 @@ public class PlayerActivity extends AppCompatActivity {
         setContentView(R.layout.activity_player);
 
         Intent intent = getIntent();
-        songs = (List<Song>) intent.getSerializableExtra("songs");
+        SongViewModel songViewModel = new ViewModelProvider(this).get(SongViewModel.class);
+        songViewModel.getSongsWithNote().observe(this, new Observer<List<SongAndNote>>() {
+            @Override
+            public void onChanged(List<SongAndNote> songAndNotes) {
+                songs = songAndNotes;
+            }
+        });
         nowPlaying = intent.getIntExtra("index", 0);
-        song = songs.get(nowPlaying);
+        song = (Song) intent.getSerializableExtra("song");
 
-        Log.d("mytag", Integer.toString(nowPlaying) + " " + song.getSong());
+//        songViewModel = new ViewModelProvider(this).get(SongViewModel.class);
+
+//        songViewModel.getSongs().observe(this, new Observer<List<Song>>() {
+//            @Override
+//            public void onChanged(List<Song> _songs) {
+//                songs = _songs;
+//            }
+//        });
 
         playButton = findViewById(R.id.playButton);
         shuffleButton = findViewById(R.id.shuffleButton);
@@ -68,10 +88,29 @@ public class PlayerActivity extends AppCompatActivity {
         wasPlaying = false;
         music = getRawIds();
 
-        try {
-            checkButtons();
-        } catch (IOException e) {
-            e.printStackTrace();
+//        try {
+//            checkButtons();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+
+        songTV.setText(song.getSong());
+        artistTV.setText(song.getArtist());
+
+        if (song.getSource().equals("base")) {
+            updateButton.setVisibility(View.GONE);
+            mediaPlayer = MediaPlayer.create(this, music.get(song.getId() - 1));
+        }
+        else {
+            updateButton.setVisibility(View.VISIBLE);
+            mediaPlayer = new MediaPlayer();
+            mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+            try {
+                mediaPlayer.setDataSource(this, Uri.parse(song.getSource()));
+                mediaPlayer.prepare();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
 
         Handler handler = new Handler();
@@ -161,12 +200,9 @@ public class PlayerActivity extends AppCompatActivity {
                 }
             }
         });
-
-//        int resId = getResources().getIdentifier(sId, "raw", getPackageName());
-//        mediaPlayer = MediaPlayer.create(this, resId);
     }
 
-    public void skipSong(View v) throws IOException {
+    public void skipSong(View v) throws IOException, ExecutionException, InterruptedException {
         switch (v.getId()) {
             case R.id.skipLeftButton: {
                 Log.d("mytag", "Previous song");
@@ -202,6 +238,23 @@ public class PlayerActivity extends AppCompatActivity {
         startActivityForResult(intent, UPDATE_SONG_REQUEST);
     }
 
+    public void addUpdateNotes(View v) {
+        Intent intent = new Intent(this, NoteActivity.class);
+        Note note = songs.get(nowPlaying).note;
+
+        intent.putExtra("note", (Serializable) note); // может быть null
+        intent.putExtra("song", (Serializable) song); // всегда есть
+
+        if (note == null) {
+            startActivityForResult(intent, ADD_NOTE_REQUEST);
+        }
+        else {
+            Log.d("newNote", "song: " + nowPlaying + " " + song.getId() + " " + song.getSong());
+            Log.d("newNote", "note: " + note.getId() + " " + note.getSongNotes());
+            startActivity(intent);
+        }
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -221,10 +274,22 @@ public class PlayerActivity extends AppCompatActivity {
             String songNotes = data.getStringExtra(UpdateActivity.SONG_NOTES);
             String songSource = data.getStringExtra(UpdateActivity.SONG_SOURCE);
 
-            Log.d("mytag", "Song " + id + " " + songName + " " + songArtist);
+            Log.d("mytag", "Song " + id + " " + song.getId() + "\n" +
+                    songArtist + " " + song.getArtist() + "\n" +
+                    songName + " " + song.getSong() + "\n" +
+                    songLyrics + " " + song.getLyrics() + "\n" +
+                    songTranslation + " " + song.getTranslation() + "\n" +
+                    songNotes + " " + song.getNotes() + "\n" +
+                    songSource + " " + song.getSource());
 
-            Song song = new Song(songArtist, songName, songLyrics, songTranslation, songNotes, songSource);
             song.setId(id);
+            song.setArtist(songArtist);
+            song.setSong(songName);
+            song.setLyrics(songLyrics);
+            song.setTranslation(songTranslation);
+            song.setNotes(Integer.getInteger(songNotes));
+            song.setSource(songSource);
+
             String button = data.getStringExtra("button");
             SongViewModel songViewModel = new ViewModelProvider(this).get(SongViewModel.class);
             if (button.equals("delete")) {
@@ -236,13 +301,30 @@ public class PlayerActivity extends AppCompatActivity {
                 startActivity(intent);
             }
             else{
-                songTV.setText(songName);
-                artistTV.setText(songArtist);
-
                 songViewModel.update(song);
+
+                songTV.setText(song.getSong());
+                artistTV.setText(song.getArtist());
 
                 Log.d("mytag", "Updated");
             }
+        }
+
+        if (requestCode == ADD_NOTE_REQUEST && resultCode == RESULT_OK) {
+            Integer noteId = Integer.valueOf(data.getIntExtra(NoteActivity.NOTE_ID, -1));
+            String songNote = data.getStringExtra(NoteActivity.SONG_NOTE);
+            Song _song = songs.get(nowPlaying).song;
+
+            Log.d("newNote", "Song: " + song.getId() + " " + song.getSong() + "\nNote: " + noteId + " " + songNote);
+            Log.d("newNote", "_song: " + _song.getId() + " " + _song.getSong());
+
+            Note note = new Note(songNote);
+            note.setId(noteId);
+            NoteViewModel noteViewModel = new ViewModelProvider(this).get(NoteViewModel.class);
+            noteViewModel.insert(note);
+            song.setNotes(noteId);
+            SongViewModel songViewModel = new ViewModelProvider(this).get(SongViewModel.class);
+            songViewModel.update(song);
         }
     }
 
@@ -262,7 +344,10 @@ public class PlayerActivity extends AppCompatActivity {
             mediaPlayer.reset();
             mediaPlayer.release();
         }
-        song = songs.get(nowPlaying);
+        song = songs.get(nowPlaying).song;
+        songTV.setText(song.getSong());
+        artistTV.setText(song.getArtist());
+
         if (song.getSource().equals("base")) {
             updateButton.setVisibility(View.GONE);
             mediaPlayer = MediaPlayer.create(this, music.get(song.getId() - 1));
@@ -274,11 +359,8 @@ public class PlayerActivity extends AppCompatActivity {
             mediaPlayer.setDataSource(this, Uri.parse(song.getSource()));
             mediaPlayer.prepare();
         }
-
-        songTV.setText(song.getSong());
-        artistTV.setText(song.getArtist());
-
         seekBar.setMax(mediaPlayer.getDuration() / 1000);
+
         if (wasPlaying){
             mediaPlayer.start();
             playButton.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.pause_button));
@@ -289,7 +371,6 @@ public class PlayerActivity extends AppCompatActivity {
 
         timePassedTV.setText("00:00");
         timeOverTV.setText(getSongDuration(mediaPlayer.getDuration()));
-        Log.d("mytag", "Song duration: " + getSongDuration(mediaPlayer.getDuration()));
     }
 
     private String getSongDuration(int dur) {
@@ -306,5 +387,14 @@ public class PlayerActivity extends AppCompatActivity {
             res = res + Integer.toString(songSec);
         }
         return res;
+    }
+
+    class ChangeSongTask extends AsyncTask<Integer, Void, Note> {
+
+        @Override
+        protected Note doInBackground(Integer... integers) {
+            Integer noteId = integers[0];
+            return null;
+        }
     }
 }
