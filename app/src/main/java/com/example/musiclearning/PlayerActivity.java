@@ -20,6 +20,21 @@ import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.lifecycle.ViewModelStoreOwner;
 
+import com.google.android.exoplayer2.DeviceInfo;
+import com.google.android.exoplayer2.ExoPlayer;
+import com.google.android.exoplayer2.MediaItem;
+import com.google.android.exoplayer2.MediaMetadata;
+import com.google.android.exoplayer2.PlaybackException;
+import com.google.android.exoplayer2.PlaybackParameters;
+import com.google.android.exoplayer2.Player;
+import com.google.android.exoplayer2.Timeline;
+import com.google.android.exoplayer2.Tracks;
+import com.google.android.exoplayer2.audio.AudioAttributes;
+import com.google.android.exoplayer2.metadata.Metadata;
+import com.google.android.exoplayer2.text.Cue;
+import com.google.android.exoplayer2.text.CueGroup;
+import com.google.android.exoplayer2.trackselection.TrackSelectionParameters;
+import com.google.android.exoplayer2.video.VideoSize;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.io.IOException;
@@ -38,13 +53,10 @@ public class PlayerActivity extends AppCompatActivity {
     TextView timePassedTV, timeOverTV, songTV, artistTV;
     Button homeButton, updateButton, notesButton;
 
-    MediaPlayer mediaPlayer;
+    ExoPlayer exoPlayer;
     List<SongAndNote> songs;
-    Song song;
-//    SongViewModel songViewModel;
     List<Integer> music;
-    boolean wasPlaying;
-    int nowPlaying, isLooping, isRandom; // isLooping может иметь 3 состояние (0 - нет повтора, 1 - повтор одной песни, 2 - повтор всего плейлиста)
+    int nowPlaying;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,19 +69,26 @@ public class PlayerActivity extends AppCompatActivity {
             @Override
             public void onChanged(List<SongAndNote> songAndNotes) {
                 songs = songAndNotes;
+                List<MediaItem> items = new ArrayList<>();
+                for (int i = 0; i < songs.size(); i++) {
+                    Uri uri;
+                    if (songs.get(i).song.getSource().equals("base")) {
+                        updateButton.setVisibility(View.GONE);
+                        uri = Uri.parse("android.resource://" + getPackageName() + "/" + music.get(songs.get(i).song.getId() - 1));
+                    }
+                    else {
+                        updateButton.setVisibility(View.VISIBLE);
+                        uri = Uri.parse(songs.get(i).song.getSource());
+                    }
+                    MediaItem item = MediaItem.fromUri(uri);
+                    items.add(item);
+                }
+                exoPlayer.setMediaItems(items, nowPlaying, 0);
+                exoPlayer.prepare();
             }
         });
+
         nowPlaying = intent.getIntExtra("index", 0);
-        song = (Song) intent.getSerializableExtra("song");
-
-//        songViewModel = new ViewModelProvider(this).get(SongViewModel.class);
-
-//        songViewModel.getSongs().observe(this, new Observer<List<Song>>() {
-//            @Override
-//            public void onChanged(List<Song> _songs) {
-//                songs = _songs;
-//            }
-//        });
 
         playButton = findViewById(R.id.playButton);
         shuffleButton = findViewById(R.id.shuffleButton);
@@ -83,42 +102,271 @@ public class PlayerActivity extends AppCompatActivity {
         updateButton = findViewById(R.id.updateButton);
         notesButton = findViewById(R.id.notesButton);
 
-        isLooping = 0;
-        isRandom = 0;
-        wasPlaying = false;
         music = getRawIds();
 
-//        try {
-//            checkButtons();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
+        exoPlayer = new ExoPlayer.Builder(getApplicationContext()).build();
 
-        songTV.setText(song.getSong());
-        artistTV.setText(song.getArtist());
+        exoPlayer.addListener(new ExoPlayer.Listener() {
 
-        if (song.getSource().equals("base")) {
-            updateButton.setVisibility(View.GONE);
-            mediaPlayer = MediaPlayer.create(this, music.get(song.getId() - 1));
-        }
-        else {
-            updateButton.setVisibility(View.VISIBLE);
-            mediaPlayer = new MediaPlayer();
-            mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-            try {
-                mediaPlayer.setDataSource(this, Uri.parse(song.getSource()));
-                mediaPlayer.prepare();
-            } catch (IOException e) {
-                e.printStackTrace();
+            @Override
+            public void onTracksChanged(Tracks tracks) {
+                Player.Listener.super.onTracksChanged(tracks);
+
+                Log.d("mytag", "On track changed");
             }
-        }
+
+            @Override
+            public void onEvents(Player player, Player.Events events) {
+                Player.Listener.super.onEvents(player, events);
+                Log.d("mytag", "On events");
+            }
+
+            @Override
+            public void onTimelineChanged(Timeline timeline, int reason) {
+                Player.Listener.super.onTimelineChanged(timeline, reason);
+
+                Log.d("mytag", "On timeline changed");
+            }
+
+            @Override
+            public void onMediaItemTransition(@Nullable MediaItem mediaItem, int reason) {
+                Player.Listener.super.onMediaItemTransition(mediaItem, reason);
+
+                Log.d("mytag", "On media item transition");
+                Song song = songs.get(nowPlaying).song;
+                songTV.setText(song.getSong());
+                artistTV.setText(song.getArtist());
+                if (song.getSource().equals("base")) {
+                    updateButton.setVisibility(View.GONE);
+                }
+                else {
+                    updateButton.setVisibility(View.VISIBLE);
+                }
+            }
+
+            @Override
+            public void onMediaMetadataChanged(MediaMetadata mediaMetadata) {
+                Player.Listener.super.onMediaMetadataChanged(mediaMetadata);
+
+                Log.d("mytag", "On media metadata changed");
+            }
+
+            @Override
+            public void onPlaylistMetadataChanged(MediaMetadata mediaMetadata) {
+                Player.Listener.super.onPlaylistMetadataChanged(mediaMetadata);
+
+                Log.d("mytag", "On playlist metadata changed");
+            }
+
+            @Override
+            public void onIsLoadingChanged(boolean isLoading) {
+                Player.Listener.super.onIsLoadingChanged(isLoading);
+
+                Log.d("mytag", "On is loading changed");
+            }
+
+            @Override
+            public void onAvailableCommandsChanged(Player.Commands availableCommands) {
+                Player.Listener.super.onAvailableCommandsChanged(availableCommands);
+
+                Log.d("mytag", "On available commands changed");
+            }
+
+            @Override
+            public void onTrackSelectionParametersChanged(TrackSelectionParameters parameters) {
+                Player.Listener.super.onTrackSelectionParametersChanged(parameters);
+
+                Log.d("mytag", "On track selection parameters changed");
+            }
+
+            @Override
+            public void onPlaybackStateChanged(int playbackState) {
+                Player.Listener.super.onPlaybackStateChanged(playbackState);
+
+                if (playbackState == ExoPlayer.STATE_READY) {
+                    Log.d("mytag", "State ready");
+                    timeOverTV.setText(getSongDuration((int) exoPlayer.getDuration()));
+                    seekBar.setMax((int) (exoPlayer.getDuration() / 1000));
+                }
+                if (playbackState == ExoPlayer.STATE_IDLE) {
+                    Log.d("mytag", "State idle");
+                }
+                if (playbackState == ExoPlayer.STATE_BUFFERING) {
+                    Log.d("mytag", "State buffering");
+                }
+                if (playbackState == ExoPlayer.STATE_ENDED) {
+                    Log.d("mytag", "State ended");
+                }
+            }
+
+            @Override
+            public void onPlayWhenReadyChanged(boolean playWhenReady, int reason) {
+                Player.Listener.super.onPlayWhenReadyChanged(playWhenReady, reason);
+
+                Log.d("mytag", "On play when ready changed");
+            }
+
+            @Override
+            public void onPlaybackSuppressionReasonChanged(int playbackSuppressionReason) {
+                Player.Listener.super.onPlaybackSuppressionReasonChanged(playbackSuppressionReason);
+
+                Log.d("mytag", "On playback suppression reason changed");
+            }
+
+            @Override
+            public void onIsPlayingChanged(boolean isPlaying) {
+                Player.Listener.super.onIsPlayingChanged(isPlaying);
+
+                Log.d("mytag", "On is playing changed");
+            }
+
+            @Override
+            public void onRepeatModeChanged(int repeatMode) {
+                Player.Listener.super.onRepeatModeChanged(repeatMode);
+
+                Log.d("mytag", "On repeat mode changed");
+            }
+
+            @Override
+            public void onShuffleModeEnabledChanged(boolean shuffleModeEnabled) {
+                Player.Listener.super.onShuffleModeEnabledChanged(shuffleModeEnabled);
+
+                Log.d("mytag", "On shuffle mode enabled changed");
+            }
+
+            @Override
+            public void onPlayerError(PlaybackException error) {
+                Player.Listener.super.onPlayerError(error);
+
+                Log.d("mytag", "On player error");
+            }
+
+            @Override
+            public void onPlayerErrorChanged(@Nullable PlaybackException error) {
+                Player.Listener.super.onPlayerErrorChanged(error);
+
+                Log.d("mytag", "On player error changed");
+            }
+
+            @Override
+            public void onPositionDiscontinuity(Player.PositionInfo oldPosition, Player.PositionInfo newPosition, int reason) {
+                Player.Listener.super.onPositionDiscontinuity(oldPosition, newPosition, reason);
+
+                Log.d("mytag", "On position discontinuity old position new position");
+            }
+
+            @Override
+            public void onPlaybackParametersChanged(PlaybackParameters playbackParameters) {
+                Player.Listener.super.onPlaybackParametersChanged(playbackParameters);
+
+                Log.d("mytag", "On playback parameters changed");
+            }
+
+            @Override
+            public void onSeekBackIncrementChanged(long seekBackIncrementMs) {
+                Player.Listener.super.onSeekBackIncrementChanged(seekBackIncrementMs);
+
+                Log.d("mytag", "On seek back increment changed");
+            }
+
+            @Override
+            public void onSeekForwardIncrementChanged(long seekForwardIncrementMs) {
+                Player.Listener.super.onSeekForwardIncrementChanged(seekForwardIncrementMs);
+
+                Log.d("mytag", "On seek forward increment changed");
+            }
+
+            @Override
+            public void onMaxSeekToPreviousPositionChanged(long maxSeekToPreviousPositionMs) {
+                Player.Listener.super.onMaxSeekToPreviousPositionChanged(maxSeekToPreviousPositionMs);
+
+                Log.d("mytag", "On max seek to previous position changed");
+            }
+
+            @Override
+            public void onAudioSessionIdChanged(int audioSessionId) {
+                Player.Listener.super.onAudioSessionIdChanged(audioSessionId);
+
+                Log.d("mytag", "On audio session id changed");
+            }
+
+            @Override
+            public void onAudioAttributesChanged(AudioAttributes audioAttributes) {
+                Player.Listener.super.onAudioAttributesChanged(audioAttributes);
+
+                Log.d("mytag", "On audio attributes changed");
+            }
+
+            @Override
+            public void onVolumeChanged(float volume) {
+                Player.Listener.super.onVolumeChanged(volume);
+
+                Log.d("mytag", "On volume changed");
+            }
+
+            @Override
+            public void onSkipSilenceEnabledChanged(boolean skipSilenceEnabled) {
+                Player.Listener.super.onSkipSilenceEnabledChanged(skipSilenceEnabled);
+
+                Log.d("mytag", "On skip silence enabled changed");
+            }
+
+            @Override
+            public void onDeviceInfoChanged(DeviceInfo deviceInfo) {
+                Player.Listener.super.onDeviceInfoChanged(deviceInfo);
+
+                Log.d("mytag", "On device info changed");
+            }
+
+            @Override
+            public void onDeviceVolumeChanged(int volume, boolean muted) {
+                Player.Listener.super.onDeviceVolumeChanged(volume, muted);
+
+                Log.d("mytag", "On device volume changed");
+            }
+
+            @Override
+            public void onVideoSizeChanged(VideoSize videoSize) {
+                Player.Listener.super.onVideoSizeChanged(videoSize);
+
+                Log.d("mytag", "On video size changed");
+            }
+
+            @Override
+            public void onSurfaceSizeChanged(int width, int height) {
+                Player.Listener.super.onSurfaceSizeChanged(width, height);
+
+                Log.d("mytag", "On surface size changed");
+            }
+
+            @Override
+            public void onRenderedFirstFrame() {
+                Player.Listener.super.onRenderedFirstFrame();
+
+                Log.d("mytag", "On rendered first frame");
+            }
+
+            @Override
+            public void onCues(CueGroup cueGroup) {
+                Player.Listener.super.onCues(cueGroup);
+
+                Log.d("mytag", "On cues cue group");
+            }
+
+            @Override
+            public void onMetadata(Metadata metadata) {
+                Player.Listener.super.onMetadata(metadata);
+
+                Log.d("mytag", "On metadata");
+            }
+        });
 
         Handler handler = new Handler();
         PlayerActivity.this.runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                if(mediaPlayer != null){
-                    int currentPosition = mediaPlayer.getCurrentPosition();
+                if(exoPlayer != null){
+                    int currentPosition = (int) exoPlayer.getCurrentPosition();
                     seekBar.setProgress(currentPosition / 1000);
                     timePassedTV.setText(getSongDuration(currentPosition));
                 }
@@ -137,35 +385,22 @@ public class PlayerActivity extends AppCompatActivity {
             }
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if(mediaPlayer != null && fromUser){
-                    mediaPlayer.seekTo(progress * 1000);
+                if(exoPlayer != null && fromUser){
+                    exoPlayer.seekTo(progress * 1000);
                     timePassedTV.setText(getSongDuration(progress * 1000));
                 }
-            }
-        });
-
-        mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-            @Override
-            public void onCompletion(MediaPlayer mediaPlayer) {
-                Log.d("mytag", "Song is finished");
-                mediaPlayer.pause();
-                playButton.setImageDrawable(ContextCompat.getDrawable(getApplication(), R.drawable.play_button));
             }
         });
 
         playButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (mediaPlayer.isPlaying()) {
-                    Log.d("mytag", "Pause song");
-                    mediaPlayer.pause();
-                    wasPlaying = false;
+                if (exoPlayer.isPlaying()) {
+                    exoPlayer.pause();
                     playButton.setImageDrawable(ContextCompat.getDrawable(getApplication(), R.drawable.play_button));
                 }
                 else {
-                    Log.d("mytag", "Play song");
-                    wasPlaying = true;
-                    mediaPlayer.start();
+                    exoPlayer.play();
                     playButton.setImageDrawable(ContextCompat.getDrawable(getApplication(), R.drawable.pause_button));
                 }
             }
@@ -174,15 +409,16 @@ public class PlayerActivity extends AppCompatActivity {
         loopButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (mediaPlayer.isLooping()) {
-                    Log.d("mytag", "Song isn't looped");
-                    isLooping = 0;
-                    mediaPlayer.setLooping(false);
+                if (exoPlayer.getRepeatMode() == Player.REPEAT_MODE_OFF) {
+                    exoPlayer.setRepeatMode(Player.REPEAT_MODE_ONE);
                 }
                 else {
-                    Log.d("mytag", "Song is looped");
-                    isLooping = 1;
-                    mediaPlayer.setLooping(true);
+                    if (exoPlayer.getRepeatMode() == Player.REPEAT_MODE_ONE) {
+                        exoPlayer.setRepeatMode(Player.REPEAT_MODE_ALL);
+                    }
+                    else {
+                        exoPlayer.setRepeatMode(Player.REPEAT_MODE_OFF);
+                    }
                 }
             }
         });
@@ -192,40 +428,38 @@ public class PlayerActivity extends AppCompatActivity {
             public void onClick(View view) {
                 int r = (int)(Math.random() * songs.size());
                 nowPlaying = r;
-                Log.d("mytag", "Random song " + Integer.toString(nowPlaying));
-                try {
-                    checkButtons();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                exoPlayer.seekTo(r, 0);
+                exoPlayer.prepare();
+                exoPlayer.play();
             }
         });
     }
 
-    public void skipSong(View v) throws IOException, ExecutionException, InterruptedException {
+    public void skipSong(View v){
         switch (v.getId()) {
             case R.id.skipLeftButton: {
                 Log.d("mytag", "Previous song");
-                if (nowPlaying == 0) {
-                    nowPlaying = songs.size();
+                if (nowPlaying > 0) {
+                    nowPlaying--;
+                    exoPlayer.seekTo(nowPlaying, 0);
                 }
-                nowPlaying--;
                 break;
             }
             case R.id.skipRightButton: {
                 Log.d("mytag", "Next song");
-                nowPlaying++;
-                if (nowPlaying == songs.size()) {
-                    nowPlaying = 0;
+                if (nowPlaying < songs.size() - 1) {
+                    nowPlaying++;
+                    exoPlayer.seekTo(nowPlaying, 0);
                 }
                 break;
             }
         }
-        checkButtons();
     }
 
     public void updateSong(View v) {
         Intent intent = new Intent(this, UpdateActivity.class);
+
+        Song song = songs.get(nowPlaying).song;
 
         intent.putExtra(UpdateActivity.SONG_ID, song.getId());
         intent.putExtra(UpdateActivity.SONG_NAME, song.getSong());
@@ -241,6 +475,7 @@ public class PlayerActivity extends AppCompatActivity {
     public void addUpdateNotes(View v) {
         Intent intent = new Intent(this, NoteActivity.class);
         Note note = songs.get(nowPlaying).note;
+        Song song = songs.get(nowPlaying).song;
 
         intent.putExtra("note", (Serializable) note); // может быть null
         intent.putExtra("song", (Serializable) song); // всегда есть
@@ -274,21 +509,8 @@ public class PlayerActivity extends AppCompatActivity {
             String songNotes = data.getStringExtra(UpdateActivity.SONG_NOTES);
             String songSource = data.getStringExtra(UpdateActivity.SONG_SOURCE);
 
-            Log.d("mytag", "Song " + id + " " + song.getId() + "\n" +
-                    songArtist + " " + song.getArtist() + "\n" +
-                    songName + " " + song.getSong() + "\n" +
-                    songLyrics + " " + song.getLyrics() + "\n" +
-                    songTranslation + " " + song.getTranslation() + "\n" +
-                    songNotes + " " + song.getNotes() + "\n" +
-                    songSource + " " + song.getSource());
-
+            Song song = new Song(songArtist, songName, songLyrics, songTranslation, Integer.getInteger(songNotes), songSource);
             song.setId(id);
-            song.setArtist(songArtist);
-            song.setSong(songName);
-            song.setLyrics(songLyrics);
-            song.setTranslation(songTranslation);
-            song.setNotes(Integer.getInteger(songNotes));
-            song.setSource(songSource);
 
             String button = data.getStringExtra("button");
             SongViewModel songViewModel = new ViewModelProvider(this).get(SongViewModel.class);
@@ -296,9 +518,7 @@ public class PlayerActivity extends AppCompatActivity {
                 songViewModel.delete(song);
 
                 Log.d("mytag", "Deleted");
-
-                Intent intent = new Intent(this, MainActivity.class);
-                startActivity(intent);
+                finish();
             }
             else{
                 songViewModel.update(song);
@@ -313,10 +533,7 @@ public class PlayerActivity extends AppCompatActivity {
         if (requestCode == ADD_NOTE_REQUEST && resultCode == RESULT_OK) {
             Integer noteId = Integer.valueOf(data.getIntExtra(NoteActivity.NOTE_ID, -1));
             String songNote = data.getStringExtra(NoteActivity.SONG_NOTE);
-            Song _song = songs.get(nowPlaying).song;
-
-            Log.d("newNote", "Song: " + song.getId() + " " + song.getSong() + "\nNote: " + noteId + " " + songNote);
-            Log.d("newNote", "_song: " + _song.getId() + " " + _song.getSong());
+            Song song = songs.get(nowPlaying).song;
 
             Note note = new Note(songNote);
             note.setId(noteId);
@@ -338,41 +555,6 @@ public class PlayerActivity extends AppCompatActivity {
         return rawIds;
     }
 
-    private void checkButtons() throws IOException {
-        if (mediaPlayer != null) {
-            mediaPlayer.stop();
-            mediaPlayer.reset();
-            mediaPlayer.release();
-        }
-        song = songs.get(nowPlaying).song;
-        songTV.setText(song.getSong());
-        artistTV.setText(song.getArtist());
-
-        if (song.getSource().equals("base")) {
-            updateButton.setVisibility(View.GONE);
-            mediaPlayer = MediaPlayer.create(this, music.get(song.getId() - 1));
-        }
-        else {
-            updateButton.setVisibility(View.VISIBLE);
-            mediaPlayer = new MediaPlayer();
-            mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-            mediaPlayer.setDataSource(this, Uri.parse(song.getSource()));
-            mediaPlayer.prepare();
-        }
-        seekBar.setMax(mediaPlayer.getDuration() / 1000);
-
-        if (wasPlaying){
-            mediaPlayer.start();
-            playButton.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.pause_button));
-        }
-        if (isLooping == 1) {
-            mediaPlayer.setLooping(true);
-        }
-
-        timePassedTV.setText("00:00");
-        timeOverTV.setText(getSongDuration(mediaPlayer.getDuration()));
-    }
-
     private String getSongDuration(int dur) {
         int songMin = dur / 1000 / 60;
         int songSec = dur / 1000 % 60;
@@ -387,14 +569,5 @@ public class PlayerActivity extends AppCompatActivity {
             res = res + Integer.toString(songSec);
         }
         return res;
-    }
-
-    class ChangeSongTask extends AsyncTask<Integer, Void, Note> {
-
-        @Override
-        protected Note doInBackground(Integer... integers) {
-            Integer noteId = integers[0];
-            return null;
-        }
     }
 }
